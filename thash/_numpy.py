@@ -1,5 +1,5 @@
 """NumPy-accelerated ThumbHash encoder. Requires numpy."""
-from functools import lru_cache
+from functools import cache
 from typing import List, Sequence
 
 import numpy as np
@@ -11,7 +11,7 @@ _DCT_DTYPE = np.float32
 _DCT_DTYPE_CHAR = np.dtype(_DCT_DTYPE).char
 
 
-@lru_cache(maxsize=64)
+@cache
 def _cosine_basis(n: int, k: int, dtype_char: str) -> np.ndarray:
     """Return the (k, n) cos matrix used by the DCT-II projection.
 
@@ -24,7 +24,7 @@ def _cosine_basis(n: int, k: int, dtype_char: str) -> np.ndarray:
     return np.cos((np.pi / n) * np.outer(cx_idx, x)).astype(dtype, copy=False)  # (k, n)
 
 
-@lru_cache(maxsize=64)
+@cache
 def _triangular_mask(nx: int, ny: int) -> np.ndarray:
     """(ny, nx) bool mask selecting AC entries in cy-outer / cx-inner order."""
     cy_idx = np.arange(ny)

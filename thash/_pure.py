@@ -1,4 +1,5 @@
 """Pure-Python ThumbHash encoder. No third-party dependencies."""
+
 import math
 from typing import List
 
@@ -53,7 +54,7 @@ def _encode(w: int, h: int, rgba: List[int]) -> List[int]:
         dc = 0
         ac = []
         scale = 0
-        fx = [0] * w
+        fx = [0.0] * w
 
         for cy in range(ny):
             cx = 0
@@ -65,7 +66,7 @@ def _encode(w: int, h: int, rgba: List[int]) -> List[int]:
                     fy = math.cos(math.pi / h * cy * (y + 0.5))
                     for x in range(w):
                         f += channel[x + y * w] * fx[x] * fy
-                f /= (w * h)
+                f /= w * h
                 if cx > 0 or cy > 0:
                     ac.append(f)
                     scale = max(scale, abs(f))
@@ -91,10 +92,7 @@ def _encode(w: int, h: int, rgba: List[int]) -> List[int]:
         | (has_alpha << 23)
     )
     header16 = (
-        (ly if is_landscape else lx)
-        | (round(63 * p_scale) << 3)
-        | (round(63 * q_scale) << 9)
-        | (is_landscape << 15)
+        (ly if is_landscape else lx) | (round(63 * p_scale) << 3) | (round(63 * q_scale) << 9) | (is_landscape << 15)
     )
     thumb_hash = [
         header24 & 255,
