@@ -3,23 +3,25 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "thumbhash"
-description = 'A very compact representation of an image placeholder'
+name = "thash"
+description = 'A very compact representation of an image placeholder (thumbhash, RGBA-safe fork)'
 readme = "README.md"
 requires-python = ">=3.7"
 license = "MIT"
-keywords = []
+keywords = ["thumbhash", "placeholder", "image", "hash"]
 authors = [
-  { name = "Justin", email = "justin@forlenza.co" },
+  { name = "Jianqi Pan", email = "jannchie@gmail.com" },
+  { name = "Justin Forlenza", email = "justin@forlenza.co" },
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -33,12 +35,18 @@ pillow = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/justinforlenza/thumbhash-py#readme"
-Issues = "https://github.com/justinforlenza/thumbhash-py/issues"
-Source = "https://github.com/justinforlenza/thumbhash-py"
+Documentation = "https://github.com/Jannchie/thumbhash-py#readme"
+Issues = "https://github.com/Jannchie/thumbhash-py/issues"
+Source = "https://github.com/Jannchie/thumbhash-py"
 
 [tool.hatch.version]
-path = "thumbhash/__about__.py"
+path = "thash/__about__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["thash"]
+
+[tool.hatch.build.targets.sdist]
+include = ["thash", "README.md", "LICENSE"]
 
 [tool.hatch.envs.default]
 dependencies = [
@@ -46,17 +54,17 @@ dependencies = [
   "pytest-cov",
 ]
 [tool.hatch.envs.default.scripts]
-cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=thumbhash --cov=tests {args}"
+cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=thash --cov=tests {args}"
 no-cov = "cov --no-cov {args}"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["37", "38", "39", "310", "311"]
+python = ["37", "38", "39", "310", "311", "312"]
 
 [tool.coverage.run]
 branch = true
 parallel = true
 omit = [
-  "thumbhash/__about__.py",
+  "thash/__about__.py",
 ]
 
 [tool.coverage.report]
