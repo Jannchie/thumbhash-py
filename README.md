@@ -69,6 +69,20 @@ aspect = thumb_hash_to_approximate_aspect_ratio(hash_bytes)  # w / h
 
 (For full decoding back to pixels, see [the JS reference impl](https://github.com/evanw/thumbhash) — only encoding is implemented here.)
 
+### Command-line
+
+Installing the package exposes a `thash` command (equivalent to `python -m thash`):
+
+```sh
+thash photo.jpg                        # base64 hash, one per line
+thash --format hex photo.jpg
+thash --format bytes photo.jpg
+thash photo.jpg cover.png hero.webp    # multi-file: "path<TAB>hash" per line
+thash --target-size 64 photo.jpg       # trade quality for encoding speed
+```
+
+The CLI uses the high-level `encode()` API and therefore needs the `[all]` extra (NumPy + Pillow).
+
 ## Tuning speed vs. quality
 
 `target_size` controls the longer dimension of the image after thumbnail (spec max is 100). Smaller = faster, lower fidelity:

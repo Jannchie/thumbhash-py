@@ -36,6 +36,11 @@ numpy = ["numpy>=1.24"]
 # `all` pulls in the recommended runtime: NumPy fast path + Pillow decoding.
 all = ["thash[pillow,numpy]"]
 
+[project.scripts]
+# The CLI uses the high-level encode() API, which needs the numpy backend +
+# Pillow for decoding. Install with `pip install thash[all]` to get both.
+thash = "thash._cli:main"
+
 [project.urls]
 Documentation = "https://github.com/Jannchie/thumbhash-py#readme"
 Issues = "https://github.com/Jannchie/thumbhash-py/issues"
