@@ -1,31 +1,46 @@
 """NumPy-accelerated ThumbHash encoder. Requires numpy."""
+from functools import lru_cache
 from typing import List, Sequence
 
 import numpy as np
 
+# Whether the DCT runs in float32 (faster, smaller AC coefficients within the
+# 4-bit quantization budget — still byte-identical to the float64 path on the
+# inputs we tested).
+_DCT_DTYPE = np.float32
+_DCT_DTYPE_CHAR = np.dtype(_DCT_DTYPE).char
+
+
+@lru_cache(maxsize=64)
+def _cosine_basis(n: int, k: int, dtype_char: str) -> np.ndarray:
+    """Return the (k, n) cos matrix used by the DCT-II projection.
+
+    The result is cached across calls; n/k pairs recur whenever images share
+    a dimension (very common: thumbnail caps max(w, h) at 100).
+    """
+    dtype = np.dtype(dtype_char)
+    cx_idx = np.arange(k, dtype=dtype)
+    x = np.arange(n, dtype=dtype) + dtype.type(0.5)
+    return np.cos((np.pi / n) * np.outer(cx_idx, x)).astype(dtype, copy=False)  # (k, n)
+
+
+@lru_cache(maxsize=64)
+def _triangular_mask(nx: int, ny: int) -> np.ndarray:
+    """(ny, nx) bool mask selecting AC entries in cy-outer / cx-inner order."""
+    cy_idx = np.arange(ny)
+    cx_idx = np.arange(nx)
+    cy_grid, cx_grid = np.meshgrid(cy_idx, cx_idx, indexing="ij")
+    return cx_grid * ny < nx * (ny - cy_grid)
+
 
 def _encode_channel(channel_2d: np.ndarray, nx: int, ny: int, w: int, h: int):
-    """DCT-II projection onto an (ny, nx) basis, returning (dc, ac_list, scale).
+    """DCT-II projection onto an (ny, nx) basis, returning (dc, ac_list, scale)."""
+    Cx = _cosine_basis(w, nx, _DCT_DTYPE_CHAR)
+    Cy = _cosine_basis(h, ny, _DCT_DTYPE_CHAR)
+    F = (Cy @ channel_2d @ Cx.T) / (w * h)
 
-    Mirrors the triangular iteration order used by the reference encoder:
-    ``cy`` outer, ``cx`` inner, while ``cx * ny < nx * (ny - cy)``.
-    """
-    cx_idx = np.arange(nx)
-    cy_idx = np.arange(ny)
-    x = np.arange(w) + 0.5
-    y = np.arange(h) + 0.5
-
-    Cx = np.cos((np.pi / w) * np.outer(cx_idx, x))  # (nx, w)
-    Cy = np.cos((np.pi / h) * np.outer(cy_idx, y))  # (ny, h)
-
-    # F[cy, cx] = (1/(w*h)) * sum_{x,y} channel[y,x] * cos(...) * cos(...)
-    F = (Cy @ channel_2d @ Cx.T) / (w * h)  # (ny, nx)
-
-    # Triangular mask in (cy, cx) iteration order.
-    cy_grid, cx_grid = np.meshgrid(cy_idx, cx_idx, indexing="ij")
-    mask = cx_grid * ny < nx * (ny - cy_grid)
-    # Row-major flatten preserves the original cy-outer / cx-inner order.
-    selected = F[mask]  # 1-D array, first element is (0,0) -> DC
+    mask = _triangular_mask(nx, ny)
+    selected = F[mask]
 
     dc = float(selected[0])
     ac = selected[1:]
@@ -33,6 +48,26 @@ def _encode_channel(channel_2d: np.ndarray, nx: int, ny: int, w: int, h: int):
     if scale:
         ac = 0.5 + 0.5 / scale * ac
     return dc, ac.tolist(), scale
+
+
+def _encode_pq(p_ch: np.ndarray, q_ch: np.ndarray, w: int, h: int):
+    """Combined 3x3 DCT for P and Q channels (they share Cx/Cy)."""
+    Cx = _cosine_basis(w, 3, _DCT_DTYPE_CHAR)
+    Cy = _cosine_basis(h, 3, _DCT_DTYPE_CHAR)
+    stacked = np.stack([p_ch, q_ch])              # (2, h, w)
+    F = (Cy @ stacked @ Cx.T) / (w * h)           # (2, 3, 3) — one batched matmul
+
+    mask = _triangular_mask(3, 3)
+    out = []
+    for i in range(2):
+        selected = F[i][mask]
+        dc = float(selected[0])
+        ac = selected[1:]
+        scale = float(np.abs(ac).max()) if ac.size else 0.0
+        if scale:
+            ac = 0.5 + 0.5 / scale * ac
+        out.append((dc, ac.tolist(), scale))
+    return out[0], out[1]
 
 
 def rgba_to_thumb_hash(w: int, h: int, rgba: Sequence[int]) -> List[int]:
@@ -44,14 +79,13 @@ def rgba_to_thumb_hash(w: int, h: int, rgba: Sequence[int]) -> List[int]:
 
 def _encode(w: int, h: int, rgba: Sequence[int]) -> List[int]:
     """NumPy encoder body without the 100x100 spec guard, for benchmarking."""
-    arr = np.asarray(rgba, dtype=np.float64).reshape(h, w, 4)
+    arr = np.asarray(rgba, dtype=_DCT_DTYPE).reshape(h, w, 4)
     r = arr[..., 0]
     g = arr[..., 1]
     b = arr[..., 2]
-    alpha = arr[..., 3] / 255.0  # (h, w), in [0, 1]
+    alpha = arr[..., 3] * _DCT_DTYPE(1.0 / 255.0)
 
-    # Premultiplied averages (alpha-weighted), then divide by total alpha.
-    a_over_255 = alpha / 255.0
+    a_over_255 = alpha * _DCT_DTYPE(1.0 / 255.0)
     avg_r = float((a_over_255 * r).sum())
     avg_g = float((a_over_255 * g).sum())
     avg_b = float((a_over_255 * b).sum())
@@ -68,17 +102,16 @@ def _encode(w: int, h: int, rgba: Sequence[int]) -> List[int]:
     lx = max(1, round(l_limit * w / max(w, h)))
     ly = max(1, round(l_limit * h / max(w, h)))
 
-    one_minus_alpha = 1.0 - alpha
-    rr = avg_r * one_minus_alpha + a_over_255 * r
-    gg = avg_g * one_minus_alpha + a_over_255 * g
-    bb = avg_b * one_minus_alpha + a_over_255 * b
-    l_ch = (rr + gg + bb) / 3.0
-    p_ch = (rr + gg) / 2.0 - bb
+    one_minus_alpha = _DCT_DTYPE(1.0) - alpha
+    rr = _DCT_DTYPE(avg_r) * one_minus_alpha + a_over_255 * r
+    gg = _DCT_DTYPE(avg_g) * one_minus_alpha + a_over_255 * g
+    bb = _DCT_DTYPE(avg_b) * one_minus_alpha + a_over_255 * b
+    l_ch = (rr + gg + bb) * _DCT_DTYPE(1.0 / 3.0)
+    p_ch = (rr + gg) * _DCT_DTYPE(0.5) - bb
     q_ch = rr - gg
 
     l_dc, l_ac, l_scale = _encode_channel(l_ch, max(3, lx), max(3, ly), w, h)
-    p_dc, p_ac, p_scale = _encode_channel(p_ch, 3, 3, w, h)
-    q_dc, q_ac, q_scale = _encode_channel(q_ch, 3, 3, w, h)
+    (p_dc, p_ac, p_scale), (q_dc, q_ac, q_scale) = _encode_pq(p_ch, q_ch, w, h)
     if has_alpha:
         a_dc, a_ac, a_scale = _encode_channel(alpha, 5, 5, w, h)
     else:
@@ -98,7 +131,13 @@ def _encode(w: int, h: int, rgba: Sequence[int]) -> List[int]:
         | (round(63 * q_scale) << 9)
         | (is_landscape << 15)
     )
-    thumb_hash = [header24 & 255, (header24 >> 8) & 255, header24 >> 16, header16 & 255, header16 >> 8]
+    thumb_hash = [
+        header24 & 255,
+        (header24 >> 8) & 255,
+        header24 >> 16,
+        header16 & 255,
+        header16 >> 8,
+    ]
 
     is_odd = False
 
