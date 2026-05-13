@@ -60,7 +60,7 @@ package = true
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "1.1.0"
 extend-exclude = ["dist", ".venv"]
 
 [tool.ruff.lint]
