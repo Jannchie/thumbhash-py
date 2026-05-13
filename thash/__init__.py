@@ -4,6 +4,7 @@ Public surface:
     encode(image, ...)                    -- high-level polymorphic API (requires numpy)
     image_to_thumb_hash(fp)               -- legacy path-based API (requires pillow)
     rgba_to_thumb_hash(w, h, rgba)        -- low-level encode from flat RGBA
+    thumb_hash_to_rgba(hash, ...)         -- decode to a small RGBA preview (requires numpy)
     thumb_hash_to_average_rgba(hash)
     thumb_hash_to_approximate_aspect_ratio(hash)
 
@@ -42,8 +43,10 @@ rgba_to_thumb_hash_numpy: Callable[..., list[int]] | None = _numpy.rgba_to_thumb
 # High-level polymorphic API (accepts paths, bytes, PIL.Image, numpy arrays, etc.)
 if _numpy is not None:
     from ._api import encode
+    from ._decode import thumb_hash_to_rgba
 else:
     encode = None  # type: ignore[assignment]
+    thumb_hash_to_rgba = None  # type: ignore[assignment]
 
 
 def image_to_thumb_hash(fp) -> list[int]:

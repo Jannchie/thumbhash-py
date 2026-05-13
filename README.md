@@ -9,6 +9,7 @@ This is an independently published fork of [`thumbhash`](https://pypi.org/projec
 - **Alpha-channel crash fixed** (operator-precedence bug in `rgba_to_thumb_hash` — see [upstream issue #1](https://github.com/justinforlenza/thumbhash-py/issues/1)).
 - **NumPy-accelerated backend** with cached cosine basis and float32 DCT (~100–140× faster than the reference implementation, byte-identical output).
 - **High-level `encode()` API** that accepts paths, bytes, PIL images, NumPy arrays, and OpenCV BGR arrays — pick the input you already have, no boilerplate.
+- **Decoder + CLI** for rendering a hash back to a placeholder image (`thumb_hash_to_rgba`, or `thash photo.jpg -o preview.png`).
 - **Configurable `target_size`** so you can trade hash quality for encoding speed.
 
 ## Installation
@@ -61,27 +62,46 @@ hash_bytes = encode(arr.astype(np.float32) / 255.0)
 ### Decoding the hash back
 
 ```python
-from thash import thumb_hash_to_average_rgba, thumb_hash_to_approximate_aspect_ratio
+from thash import (
+    thumb_hash_to_rgba,
+    thumb_hash_to_average_rgba,
+    thumb_hash_to_approximate_aspect_ratio,
+)
 
-r, g, b, a = thumb_hash_to_average_rgba(hash_bytes)   # values in [0, 1]
-aspect = thumb_hash_to_approximate_aspect_ratio(hash_bytes)  # w / h
+# Render the hash to a small RGBA preview (NumPy uint8 array, shape (h, w, 4))
+w, h, rgba = thumb_hash_to_rgba(hash_bytes, base_size=256)
+
+from PIL import Image
+Image.fromarray(rgba, mode="RGBA").save("preview.png")
+
+# Cheaper queries that don't reconstruct pixels:
+r, g, b, a = thumb_hash_to_average_rgba(hash_bytes)            # values in [0, 1]
+aspect = thumb_hash_to_approximate_aspect_ratio(hash_bytes)    # w / h
 ```
 
-(For full decoding back to pixels, see [the JS reference impl](https://github.com/evanw/thumbhash) — only encoding is implemented here.)
+`base_size` is the longer edge of the reconstructed image. ThumbHash only carries ~5×5 / 7×7 frequency coefficients, so the IDCT is run directly at the requested resolution rather than upsampled — values up to a few hundred pixels look smooth without any extra resampling. The aspect ratio comes from the encoded `lx / ly` (e.g. 7:4 for a landscape, 5:7 for a portrait); near-non-integer ratios like 1.6 get quantized to 1.75, this is a spec property, not an implementation choice.
 
 ### Command-line
 
 Installing the package exposes a `thash` command (equivalent to `python -m thash`):
 
 ```sh
+# --- Encoding: print a hash for each input ---
 thash photo.jpg                        # base64 hash, one per line
 thash --format hex photo.jpg
 thash --format bytes photo.jpg
 thash photo.jpg cover.png hero.webp    # multi-file: "path<TAB>hash" per line
 thash --target-size 64 photo.jpg       # trade quality for encoding speed
+
+# --- Rendering: save a placeholder preview PNG ---
+thash photo.jpg -o preview.png                     # encode + decode + save
+thash photo.jpg -o preview.png --size 128          # cap the longer edge
+thash "2dYJLJSBdoiAiHVoSHZzcBf4iA==" -o p.png      # base64 hash → PNG (no source image needed)
+thash d9d6092c94817688808875684876737017f888 -o p.png  # hex hash → PNG
+thash a.jpg b.jpg "2dYJ...==" -o out/              # multi input → directory, auto-named
 ```
 
-The CLI uses the high-level `encode()` API and therefore needs the `[all]` extra (NumPy + Pillow).
+The CLI uses the high-level `encode()` / `thumb_hash_to_rgba()` APIs and therefore needs the `[all]` extra (NumPy + Pillow). Hash inputs are auto-detected: hex strings (even length, hex alphabet) are tried first, then base64 (standard and URL-safe).
 
 ## Tuning speed vs. quality
 
