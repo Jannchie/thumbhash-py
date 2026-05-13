@@ -4,10 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "thash"
-description = 'A very compact representation of an image placeholder (thumbhash, RGBA-safe fork)'
+description = "A very compact representation of an image placeholder (thumbhash, RGBA-safe fork)"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 license = "MIT"
+license-files = ["LICENSE"]
 keywords = ["thumbhash", "placeholder", "image", "hash"]
 authors = [
   { name = "Jianqi Pan", email = "jannchie@gmail.com" },
@@ -16,28 +17,80 @@ authors = [
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.7",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
+  "Topic :: Multimedia :: Graphics",
 ]
-dependencies = [
-]
+# The package works with no deps (pure-Python fallback). Extras turn on
+# acceleration and image-decoding helpers.
+dependencies = []
 dynamic = ["version"]
 
 [project.optional-dependencies]
-pillow = [
-  "pillow"
-]
+pillow = ["pillow>=10"]
+numpy = ["numpy>=1.24"]
+# `all` pulls in the recommended runtime: NumPy fast path + Pillow decoding.
+all = ["thash[pillow,numpy]"]
 
 [project.urls]
 Documentation = "https://github.com/Jannchie/thumbhash-py#readme"
 Issues = "https://github.com/Jannchie/thumbhash-py/issues"
 Source = "https://github.com/Jannchie/thumbhash-py"
+
+# PEP 735 dependency groups (consumed natively by uv).
+# Install with: `uv sync --group dev` or `uv sync --all-groups`.
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "pytest-cov>=5",
+  "ruff>=0.7",
+]
+bench = [
+  "numpy>=1.24",
+  "pillow>=10",
+]
+
+[tool.uv]
+# Build the project itself into the env so editable imports work.
+package = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["dist", ".venv"]
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes
+  "I",    # isort
+  "B",    # flake8-bugbear
+  "UP",   # pyupgrade
+  "SIM",  # flake8-simplify
+  "RUF",  # ruff-specific
+]
+ignore = [
+  # The reference ThumbHash algorithm uses single-letter names (l/p/q for
+  # luminance + chroma channels, lx/ly for low-freq counts). Renaming would
+  # drift from the spec and reference impls.
+  "E741",
+  # We deliberately keep the legacy List/Tuple type aliases in places to read
+  # naturally for users on older type-checkers.
+  "UP006", "UP035",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Benchmarks intentionally print, reach into private backends, and inject sys.path.
+"benchmarks/*" = ["T201", "B", "E402", "I001"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.hatch.version]
 path = "thash/__about__.py"
@@ -48,24 +101,10 @@ packages = ["thash"]
 [tool.hatch.build.targets.sdist]
 include = ["thash", "README.md", "LICENSE"]
 
-[tool.hatch.envs.default]
-dependencies = [
-  "pytest",
-  "pytest-cov",
-]
-[tool.hatch.envs.default.scripts]
-cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=thash --cov=tests {args}"
-no-cov = "cov --no-cov {args}"
-
-[[tool.hatch.envs.test.matrix]]
-python = ["37", "38", "39", "310", "311", "312"]
-
 [tool.coverage.run]
 branch = true
 parallel = true
-omit = [
-  "thash/__about__.py",
-]
+omit = ["thash/__about__.py"]
 
 [tool.coverage.report]
 exclude_lines = [
