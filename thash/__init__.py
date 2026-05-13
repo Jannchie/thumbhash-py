@@ -10,6 +10,7 @@ Public surface:
 Backend handles (for benchmarking or forcing a path):
     rgba_to_thumb_hash_pure / _numpy (None if backend unavailable)
 """
+
 from typing import Callable
 
 from . import _pure
@@ -36,9 +37,7 @@ rgba_to_thumb_hash: Callable[..., list[int]] = (
 
 # Explicit backend handles (None if the optional dep isn't installed).
 rgba_to_thumb_hash_pure: Callable[..., list[int]] = _pure.rgba_to_thumb_hash
-rgba_to_thumb_hash_numpy: Callable[..., list[int]] | None = (
-    _numpy.rgba_to_thumb_hash if _numpy is not None else None
-)
+rgba_to_thumb_hash_numpy: Callable[..., list[int]] | None = _numpy.rgba_to_thumb_hash if _numpy is not None else None
 
 # High-level polymorphic API (accepts paths, bytes, PIL.Image, numpy arrays, etc.)
 if _numpy is not None:

@@ -3,6 +3,7 @@
 Accepts a wide range of image inputs (path, bytes, PIL.Image, numpy array,
 OpenCV array) and routes to an accelerated backend.
 """
+
 from io import BytesIO
 from pathlib import Path
 from types import ModuleType
@@ -60,21 +61,14 @@ def encode(
     if not (1 <= target_size <= 100):
         raise ValueError(f"target_size must be in [1, 100]; got {target_size}")
 
-    rgba = _to_rgba_uint8(
-        image, color_order=color_order, resize=resize, target_size=target_size
-    )
+    rgba = _to_rgba_uint8(image, color_order=color_order, resize=resize, target_size=target_size)
     h, w = rgba.shape[:2]
     if w > target_size or h > target_size:
-        raise ValueError(
-            f"image is {w}x{h}, exceeds target_size={target_size}. "
-            "Pass resize=True or pre-downscale."
-        )
+        raise ValueError(f"image is {w}x{h}, exceeds target_size={target_size}. Pass resize=True or pre-downscale.")
 
     mod = _BACKENDS.get(backend or "numpy")
     if mod is None:
-        raise ValueError(
-            f"backend {backend!r} not available. Choose from {sorted(_BACKENDS)}."
-        )
+        raise ValueError(f"backend {backend!r} not available. Choose from {sorted(_BACKENDS)}.")
     # Backends accept either a flat sequence or an (h, w, 4) ndarray; numpy
     # backends np.asarray(...).reshape(h, w, 4) so we pass the ndarray directly
     # for zero-copy.
@@ -97,9 +91,7 @@ def _to_rgba_uint8(image, *, color_order: str, resize: bool, target_size: int) -
     if isinstance(image, (bytes, bytearray, memoryview)):
         if Image is None:
             raise ImportError(_PIL_REQUIRED)
-        return _pil_to_rgba(
-            Image.open(BytesIO(bytes(image))), resize=resize, target_size=target_size
-        )
+        return _pil_to_rgba(Image.open(BytesIO(bytes(image))), resize=resize, target_size=target_size)
 
     # --- PIL Image ---
     if Image is not None and isinstance(image, Image.Image):
@@ -107,13 +99,10 @@ def _to_rgba_uint8(image, *, color_order: str, resize: bool, target_size: int) -
 
     # --- Anything array-like (numpy, torch on CPU, cv2 output, etc.) ---
     if isinstance(image, np.ndarray) or hasattr(image, "__array__"):
-        return _ndarray_to_rgba(
-            np.asarray(image), color_order=color_order, resize=resize, target_size=target_size
-        )
+        return _ndarray_to_rgba(np.asarray(image), color_order=color_order, resize=resize, target_size=target_size)
 
     raise TypeError(
-        f"Unsupported image type: {type(image).__name__}. "
-        "Expected path, bytes, PIL.Image, or numpy ndarray."
+        f"Unsupported image type: {type(image).__name__}. Expected path, bytes, PIL.Image, or numpy ndarray."
     )
 
 

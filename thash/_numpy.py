@@ -1,4 +1,5 @@
 """NumPy-accelerated ThumbHash encoder. Requires numpy."""
+
 from functools import cache
 from typing import List, Sequence
 
@@ -54,8 +55,8 @@ def _encode_pq(p_ch: np.ndarray, q_ch: np.ndarray, w: int, h: int):
     """Combined 3x3 DCT for P and Q channels (they share Cx/Cy)."""
     Cx = _cosine_basis(w, 3, _DCT_DTYPE_CHAR)
     Cy = _cosine_basis(h, 3, _DCT_DTYPE_CHAR)
-    stacked = np.stack([p_ch, q_ch])              # (2, h, w)
-    F = (Cy @ stacked @ Cx.T) / (w * h)           # (2, 3, 3) — one batched matmul
+    stacked = np.stack([p_ch, q_ch])  # (2, h, w)
+    F = (Cy @ stacked @ Cx.T) / (w * h)  # (2, 3, 3) — one batched matmul
 
     mask = _triangular_mask(3, 3)
     out = []
@@ -126,10 +127,7 @@ def _encode(w: int, h: int, rgba: Sequence[int]) -> List[int]:
         | (has_alpha << 23)
     )
     header16 = (
-        (ly if is_landscape else lx)
-        | (round(63 * p_scale) << 3)
-        | (round(63 * q_scale) << 9)
-        | (is_landscape << 15)
+        (ly if is_landscape else lx) | (round(63 * p_scale) << 3) | (round(63 * q_scale) << 9) | (is_landscape << 15)
     )
     thumb_hash = [
         header24 & 255,

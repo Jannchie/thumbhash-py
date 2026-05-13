@@ -44,15 +44,8 @@ Source = "https://github.com/Jannchie/thumbhash-py"
 # PEP 735 dependency groups (consumed natively by uv).
 # Install with: `uv sync --group dev` or `uv sync --all-groups`.
 [dependency-groups]
-dev = [
-  "pytest>=8",
-  "pytest-cov>=5",
-  "ruff>=0.7",
-]
-bench = [
-  "numpy>=1.24",
-  "pillow>=10",
-]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.7"]
+bench = ["numpy>=1.24", "pillow>=10"]
 
 [tool.uv]
 # Build the project itself into the env so editable imports work.
@@ -60,19 +53,18 @@ package = true
 
 [tool.ruff]
 line-length = 120
-target-version = "1.1.0"
 extend-exclude = ["dist", ".venv"]
 
 [tool.ruff.lint]
 select = [
-  "E",    # pycodestyle errors
-  "W",    # pycodestyle warnings
-  "F",    # pyflakes
-  "I",    # isort
-  "B",    # flake8-bugbear
-  "UP",   # pyupgrade
-  "SIM",  # flake8-simplify
-  "RUF",  # ruff-specific
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "UP",  # pyupgrade
+  "SIM", # flake8-simplify
+  "RUF", # ruff-specific
 ]
 ignore = [
   # The reference ThumbHash algorithm uses single-letter names (l/p/q for
@@ -81,7 +73,8 @@ ignore = [
   "E741",
   # We deliberately keep the legacy List/Tuple type aliases in places to read
   # naturally for users on older type-checkers.
-  "UP006", "UP035",
+  "UP006",
+  "UP035",
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -107,8 +100,4 @@ parallel = true
 omit = ["thash/__about__.py"]
 
 [tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]

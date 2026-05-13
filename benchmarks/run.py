@@ -11,6 +11,7 @@ Usage (from repo root):
     python benchmarks/run.py --repeat 7 --inner 5
     python benchmarks/run.py --skip-large
 """
+
 import argparse
 import statistics
 import sys
@@ -30,19 +31,19 @@ from thash import _numpy, _pure
 
 # (label, width, height, with_alpha, allow_pure)
 CASES: List[Tuple[str, int, int, bool, bool]] = [
-    ("tiny-square",     10,  10, False, True),
-    ("small-square",    32,  32, False, True),
-    ("medium-square",   64,  64, False, True),
-    ("max-square",     100, 100, False, True),
-    ("landscape",      100,  56, False, True),
-    ("portrait",        56, 100, False, True),
-    ("max-square+a",   100, 100, True,  True),
-    ("landscape+a",    100,  56, True,  True),
+    ("tiny-square", 10, 10, False, True),
+    ("small-square", 32, 32, False, True),
+    ("medium-square", 64, 64, False, True),
+    ("max-square", 100, 100, False, True),
+    ("landscape", 100, 56, False, True),
+    ("portrait", 56, 100, False, True),
+    ("max-square+a", 100, 100, True, True),
+    ("landscape+a", 100, 56, True, True),
     # Beyond-spec sizes: directly stress the DCT. Pure Python skipped.
-    ("HD-720p",       1280, 720, False, False),
-    ("FHD-1080p",     1920,1080, False, False),
-    ("QHD-1440p",     2560,1440, False, False),
-    ("UHD-4K",        3840,2160, False, False),
+    ("HD-720p", 1280, 720, False, False),
+    ("FHD-1080p", 1920, 1080, False, False),
+    ("QHD-1440p", 2560, 1440, False, False),
+    ("UHD-4K", 3840, 2160, False, False),
 ]
 
 
@@ -83,8 +84,7 @@ def main() -> int:
     parser.add_argument("--repeat", type=int, default=5)
     parser.add_argument("--inner", type=int, default=3)
     parser.add_argument("--warmup", type=int, default=2)
-    parser.add_argument("--skip-large", action="store_true",
-                        help="Only run spec sizes (<=100x100)")
+    parser.add_argument("--skip-large", action="store_true", help="Only run spec sizes (<=100x100)")
     args = parser.parse_args()
 
     backends = [("pure", _pure)]
@@ -96,11 +96,7 @@ def main() -> int:
     print(f"Each cell: median of {args.repeat} batches x {args.inner} call(s)")
     print()
 
-    header = (
-        f"{'case':<14} {'size':>10} {'alpha':>5}  "
-        + "  ".join(f"{name:>11}" for name, _ in backends)
-        + "   match"
-    )
+    header = f"{'case':<14} {'size':>10} {'alpha':>5}  " + "  ".join(f"{name:>11}" for name, _ in backends) + "   match"
     print(header)
     print("-" * len(header))
 
@@ -109,9 +105,7 @@ def main() -> int:
         if args.skip_large and (w > 100 or h > 100):
             continue
 
-        rgba_arr = make_image_uint8(
-            w, h, with_alpha, seed=(w * 31 + h * 7 + int(with_alpha)) & 0xFFFF
-        )
+        rgba_arr = make_image_uint8(w, h, with_alpha, seed=(w * 31 + h * 7 + int(with_alpha)) & 0xFFFF)
         rgba_list = make_flat_list(rgba_arr)
 
         # Correctness: compare every backend to numpy as ground truth (or pure if numpy missing).
@@ -149,10 +143,7 @@ def main() -> int:
         if medians.get("pure") and medians.get("numpy"):
             speedups_vs_pure.append(medians["pure"] / medians["numpy"])
 
-        match_str = "".join(
-            "." if match_flags[n] is None else ("Y" if match_flags[n] else "N")
-            for n, _ in backends
-        )
+        match_str = "".join("." if match_flags[n] is None else ("Y" if match_flags[n] else "N") for n, _ in backends)
         cells = "  ".join(fmt_seconds(medians[n]) for n, _ in backends)
         print(f"{label:<14} {w:>5}x{h:<4} {with_alpha!s:>5}  {cells}   {match_str}")
 
