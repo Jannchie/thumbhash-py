@@ -82,7 +82,7 @@ def rgba_to_thumb_hash(w: int, h: int, rgba: List[int]) -> List[int]:
     l_dc, l_ac, l_scale = encode_channel(l, max(3, lx), max(3, ly))
     p_dc, p_ac, p_scale = encode_channel(p, 3, 3)
     q_dc, q_ac, q_scale = encode_channel(q, 3, 3)
-    a_dc, a_ac, a_scale = encode_channel(a, 5, 5) if has_alpha else 1.0, [], 1.0
+    a_dc, a_ac, a_scale = encode_channel(a, 5, 5) if has_alpha else (1.0, [], 1.0)
 
     is_landscape = w > h
     header24 = round(63 * l_dc) | (round(31.5 + 31.5 * p_dc) << 6) | (round(31.5 + 31.5 * q_dc) << 12) | (round(31 * l_scale) << 18) | (has_alpha << 23)
