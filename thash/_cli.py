@@ -142,18 +142,16 @@ def _resolve_output_path(
 def _render_and_save(hash_bytes: list[int], save_path: Path, *, size: int) -> None:
     from . import thumb_hash_to_rgba
 
-    if thumb_hash_to_rgba is None:
-        raise ImportError("rendering a preview needs NumPy and Pillow — install with `pip install thash[all]`")
     try:
         from PIL import Image
     except ImportError as exc:
-        raise ImportError("saving a PNG preview needs Pillow — install with `pip install thash[all]`") from exc
+        raise ImportError("saving a PNG preview needs Pillow — install with `pip install thash[pillow]`") from exc
 
     # Reconstruct directly at the requested resolution — ThumbHash only encodes ~5x5 / 7x7
     # frequency coefficients, so IDCT at any target size produces a smooth low-frequency
     # image. This avoids both an upsampling pass and an extra aspect-ratio rounding step.
-    _, _, rgba = thumb_hash_to_rgba(hash_bytes, base_size=size)
-    Image.fromarray(rgba, mode="RGBA").save(save_path)
+    w, h, rgba = thumb_hash_to_rgba(hash_bytes, base_size=size)
+    Image.frombytes("RGBA", (w, h), rgba).save(save_path)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -185,10 +183,6 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             if kind == "image":
-                if encode is None:
-                    raise ImportError(
-                        "encoding image files needs NumPy and Pillow — install with `pip install thash[all]`"
-                    )
                 hash_bytes = encode(value, target_size=args.target_size, backend=args.backend)
             else:
                 hash_bytes = list(value)  # type: ignore[arg-type]

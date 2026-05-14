@@ -68,11 +68,15 @@ from thash import (
     thumb_hash_to_approximate_aspect_ratio,
 )
 
-# Render the hash to a small RGBA preview (NumPy uint8 array, shape (h, w, 4))
+# Render the hash to a small RGBA preview (flat bytes, length 4*w*h)
 w, h, rgba = thumb_hash_to_rgba(hash_bytes, base_size=256)
 
 from PIL import Image
-Image.fromarray(rgba, mode="RGBA").save("preview.png")
+Image.frombytes("RGBA", (w, h), rgba).save("preview.png")
+
+# Want a numpy array instead?
+import numpy as np
+arr = np.frombuffer(rgba, dtype=np.uint8).reshape(h, w, 4)
 
 # Cheaper queries that don't reconstruct pixels:
 r, g, b, a = thumb_hash_to_average_rgba(hash_bytes)            # values in [0, 1]
@@ -101,7 +105,7 @@ thash d9d6092c94817688808875684876737017f888 -o p.png  # hex hash → PNG
 thash a.jpg b.jpg "2dYJ...==" -o out/              # multi input → directory, auto-named
 ```
 
-The CLI uses the high-level `encode()` / `thumb_hash_to_rgba()` APIs and therefore needs the `[all]` extra (NumPy + Pillow). Hash inputs are auto-detected: hex strings (even length, hex alphabet) are tried first, then base64 (standard and URL-safe).
+The CLI uses the high-level `encode()` / `thumb_hash_to_rgba()` APIs. It needs Pillow for decoding images / writing PNG previews; NumPy is optional (only accelerates the encode / decode). Install with `pip install thash[pillow]` for the CLI or `[all]` for the fast path too. Hash inputs are auto-detected: hex strings (even length, hex alphabet) are tried first, then base64 (standard and URL-safe).
 
 ## Tuning speed vs. quality
 

@@ -37,8 +37,10 @@ numpy = ["numpy>=1.24"]
 all = ["thash[pillow,numpy]"]
 
 [project.scripts]
-# The CLI uses the high-level encode() API, which needs the numpy backend +
-# Pillow for decoding. Install with `pip install thash[all]` to get both.
+# The CLI uses the high-level encode() API. Pillow is required for image
+# decoding / PNG output; numpy is optional (only accelerates the encode/decode).
+# Install with `pip install thash[pillow]` for the CLI, or `[all]` for the
+# fast path too.
 thash = "thash._cli:main"
 
 [project.urls]

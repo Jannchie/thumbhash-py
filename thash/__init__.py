@@ -1,25 +1,32 @@
 """thash — a compact placeholder hash for images.
 
 Public surface:
-    encode(image, ...)                    -- high-level polymorphic API (requires numpy)
+    encode(image, ...)                    -- high-level polymorphic API
     image_to_thumb_hash(fp)               -- legacy path-based API (requires pillow)
     rgba_to_thumb_hash(w, h, rgba)        -- low-level encode from flat RGBA
-    thumb_hash_to_rgba(hash, ...)         -- decode to a small RGBA preview (requires numpy)
+    thumb_hash_to_rgba(hash, ...)         -- decode to a small RGBA preview (returns bytes)
     thumb_hash_to_average_rgba(hash)
     thumb_hash_to_approximate_aspect_ratio(hash)
 
+The package works with no third-party deps (pure-Python fallback). Installing
+numpy enables a 100x+ faster encoder/decoder, and installing Pillow lets the
+high-level API accept file paths / bytes / PIL images.
+
 Backend handles (for benchmarking or forcing a path):
-    rgba_to_thumb_hash_pure / _numpy (None if backend unavailable)
+    rgba_to_thumb_hash_pure / rgba_to_thumb_hash_numpy
+        (the numpy variant is ``None`` when numpy isn't installed)
 """
 
 from typing import Callable
 
 from . import _pure
+from ._api import encode
+from ._decode import thumb_hash_to_rgba
 
 try:
     from . import _numpy
 except ImportError:
-    _numpy = None
+    _numpy = None  # type: ignore[assignment]
 
 try:
     from PIL import Image, ImageOps
@@ -38,15 +45,23 @@ rgba_to_thumb_hash: Callable[..., list[int]] = (
 
 # Explicit backend handles (None if the optional dep isn't installed).
 rgba_to_thumb_hash_pure: Callable[..., list[int]] = _pure.rgba_to_thumb_hash
-rgba_to_thumb_hash_numpy: Callable[..., list[int]] | None = _numpy.rgba_to_thumb_hash if _numpy is not None else None
+rgba_to_thumb_hash_numpy: Callable[..., list[int]] | None = (
+    _numpy.rgba_to_thumb_hash if _numpy is not None else None
+)
 
-# High-level polymorphic API (accepts paths, bytes, PIL.Image, numpy arrays, etc.)
-if _numpy is not None:
-    from ._api import encode
-    from ._decode import thumb_hash_to_rgba
-else:
-    encode = None  # type: ignore[assignment]
-    thumb_hash_to_rgba = None  # type: ignore[assignment]
+
+__all__ = [
+    "encode",
+    "has_numpy",
+    "has_pil",
+    "image_to_thumb_hash",
+    "rgba_to_thumb_hash",
+    "rgba_to_thumb_hash_numpy",
+    "rgba_to_thumb_hash_pure",
+    "thumb_hash_to_approximate_aspect_ratio",
+    "thumb_hash_to_average_rgba",
+    "thumb_hash_to_rgba",
+]
 
 
 def image_to_thumb_hash(fp) -> list[int]:
