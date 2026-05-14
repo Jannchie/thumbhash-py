@@ -1,3 +1,20 @@
+## v1.2.0
+
+[v1.1.0...v1.2.0](https://github.com/Jannchie/thumbhash-py/compare/v1.1.0...v1.2.0)
+
+### :sparkles: Features
+
+- **cli**: add hash preview rendering support - By [Jianqi Pan](mailto:jannchie@gmail.com) in [12f170e](https://github.com/Jannchie/thumbhash-py/commit/12f170e)
+- **cli**: add image encoding command - By [Jianqi Pan](mailto:jannchie@gmail.com) in [42ccacb](https://github.com/Jannchie/thumbhash-py/commit/42ccacb)
+
+### :memo: Documentation
+
+- **cli**: update readme and cli documentation on numpy and pillow - By [Jianqi Pan](mailto:jannchie@gmail.com) in [115a32a](https://github.com/Jannchie/thumbhash-py/commit/115a32a)
+
+### :wrench: Chores
+
+- **format**: reformat code and config - By [Jianqi Pan](mailto:jannchie@gmail.com) in [ad1a83e](https://github.com/Jannchie/thumbhash-py/commit/ad1a83e)
+
 ## v1.1.0
 
 [v0.1.2...v1.1.0](https://github.com/Jannchie/thumbhash-py/compare/v0.1.2...v1.1.0)
