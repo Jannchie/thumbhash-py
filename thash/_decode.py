@@ -19,7 +19,7 @@ from typing import Sequence
 try:
     import numpy as _np
 except ImportError:
-    _np = None
+    _np = None  # type:ignore[assignment]
 
 
 def thumb_hash_to_rgba(thumb_hash: Sequence[int], *, base_size: int = 32) -> tuple[int, int, bytes]:
@@ -233,7 +233,7 @@ def _reconstruct_numpy(
     assert _np is not None
     np = _np
 
-    def pack(nx: int, ny: int, dc: float, ac: list[float]):
+    def pack(nx: int, ny: int, dc: float, ac: list[float]) -> np.typing.NDArray[np.float32]:
         coeffs = np.zeros((ny, nx), dtype=np.float32)
         coeffs[0, 0] = dc
         idx = 0
@@ -245,14 +245,16 @@ def _reconstruct_numpy(
                 cx += 1
         return coeffs
 
-    def idct(nx: int, ny: int, coeffs):
+    def idct(nx: int, ny: int, coeffs: np.typing.NDArray[np.float32]) -> np.typing.NDArray[np.float32]:
         x = np.arange(w_out, dtype=np.float32)
         y = np.arange(h_out, dtype=np.float32)
         ax = np.where(np.arange(nx) == 0, 1.0, 2.0).astype(np.float32)
         ay = np.where(np.arange(ny) == 0, 1.0, 2.0).astype(np.float32)
         cos_x = np.cos(np.pi / w_out * (x[:, None] + 0.5) * np.arange(nx, dtype=np.float32)[None, :]) * ax[None, :]
         cos_y = np.cos(np.pi / h_out * (y[:, None] + 0.5) * np.arange(ny, dtype=np.float32)[None, :]) * ay[None, :]
-        return cos_y.astype(np.float32) @ coeffs @ cos_x.astype(np.float32).T  # (h_out, w_out)
+        return (  # type:ignore[no-any-return]
+            cos_y.astype(np.float32) @ coeffs @ cos_x.astype(np.float32).T  # (h_out, w_out)
+        )
 
     L = idct(lx, ly, pack(lx, ly, l_dc, l_ac))
     P = idct(3, 3, pack(3, 3, p_dc, p_ac))

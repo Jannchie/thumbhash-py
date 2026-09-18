@@ -52,7 +52,7 @@ def _decode_hash_string(arg: str) -> bytes | None:
     return None
 
 
-def _classify_input(arg: str) -> tuple[str, object]:
+def _classify_input(arg: str) -> tuple[str, Path | bytes]:
     """Return ('image', Path) or ('hash', bytes). Raises ValueError if neither."""
     p = Path(arg)
     if p.exists():
