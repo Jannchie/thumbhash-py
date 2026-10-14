@@ -252,9 +252,9 @@ def _reconstruct_numpy(
         ay = np.where(np.arange(ny) == 0, 1.0, 2.0).astype(np.float32)
         cos_x = np.cos(np.pi / w_out * (x[:, None] + 0.5) * np.arange(nx, dtype=np.float32)[None, :]) * ax[None, :]
         cos_y = np.cos(np.pi / h_out * (y[:, None] + 0.5) * np.arange(ny, dtype=np.float32)[None, :]) * ay[None, :]
-        return (  # type:ignore[no-any-return]
-            cos_y.astype(np.float32) @ coeffs @ cos_x.astype(np.float32).T  # (h_out, w_out)
-        )
+        return (
+            cos_y.astype(np.float32) @ coeffs @ cos_x.astype(np.float32).T  # type:ignore[no-any-return,return-value,unused-ignore]
+        )  # (h_out, w_out)
 
     L = idct(lx, ly, pack(lx, ly, l_dc, l_ac))
     P = idct(3, 3, pack(3, 3, p_dc, p_ac))

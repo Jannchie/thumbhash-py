@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Literal, Protocol, Sequence
+from typing import Any, Literal, Protocol
 
 try:
     from PIL import Image, ImageOps
