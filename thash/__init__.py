@@ -17,7 +17,8 @@ Backend handles (for benchmarking or forcing a path):
         (the numpy variant is ``None`` when numpy isn't installed)
 """
 
-from typing import Callable
+import os
+from typing import IO, Callable
 
 from . import _pure
 from ._api import encode
@@ -64,13 +65,12 @@ __all__ = [
 ]
 
 
-def image_to_thumb_hash(fp) -> list[int]:
+def image_to_thumb_hash(fp: str | bytes | os.PathLike[str] | os.PathLike[bytes] | IO[bytes]) -> list[int]:
     """Open an image file (or bytes/Path) and encode to a ThumbHash."""
     if Image is None or ImageOps is None:
         raise ImportError("Pillow not installed; install with `pip install thash[pillow]`")
 
-    img = Image.open(fp)
-    img = img.convert("RGBA")
+    img = Image.open(fp).convert("RGBA")
     img.thumbnail((100, 100))
     img = ImageOps.exif_transpose(img)
 

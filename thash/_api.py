@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, Protocol
 
 try:
     from PIL import Image, ImageOps
@@ -22,14 +22,14 @@ except ImportError:
 try:
     import numpy as _np
 except ImportError:
-    _np = None
+    _np = None  # type:ignore[assignment]
 
 from . import _pure
 
 try:
     from . import _numpy
 except ImportError:
-    _numpy = None
+    _numpy = None  # type:ignore[assignment]
 
 
 _PIL_REQUIRED = "Pillow required for this input. Install with `pip install thash[pillow]`."
@@ -40,8 +40,12 @@ _NUMPY_REQUIRED_FOR_ARRAY = (
 _NUMPY_REQUIRED_FOR_BACKEND = "backend='numpy' was requested but numpy is not installed."
 
 
+class _ArrayProtocol(Protocol):
+    def __array__(self, dtype: _np.dtype | None = None, copy: bool | None = None) -> _np.typing.NDArray[Any]: ...
+
+
 def encode(
-    image,
+    image: str | Path | bytes | Image.Image | _ArrayProtocol,
     *,
     color_order: str = "auto",
     resize: bool = True,
@@ -89,13 +93,13 @@ def encode(
     if backend == "numpy":
         if _numpy is None:
             raise ImportError(_NUMPY_REQUIRED_FOR_BACKEND)
-        return _numpy._encode(w, h, _to_numpy_arr(rgba, w, h))
+        return _numpy._encode(w, h, _to_numpy_arr(rgba, w, h))  # type:ignore[arg-type]
     if backend == "pure":
         return _pure._encode(w, h, _to_flat_list(rgba))
     raise ValueError(f"backend {backend!r} not available. Choose from ('pure', 'numpy').")
 
 
-def _to_numpy_arr(rgba, w: int, h: int):
+def _to_numpy_arr(rgba: _np.typing.NDArray[_np.uint8], w: int, h: int) -> _np.typing.NDArray[_np.uint8]:
     """Coerce an RGBA buffer (bytes/ndarray) into an ndarray for the numpy backend."""
     assert _np is not None
     if isinstance(rgba, _np.ndarray):
@@ -103,7 +107,7 @@ def _to_numpy_arr(rgba, w: int, h: int):
     return _np.frombuffer(rgba, dtype=_np.uint8).reshape(h, w, 4)
 
 
-def _to_flat_list(rgba) -> list[int]:
+def _to_flat_list(rgba: bytes | bytearray | list[int] | _np.typing.NDArray[_np.uint8]) -> list[int]:
     """Coerce an RGBA buffer (bytes/bytearray/list/ndarray) into a flat list[int]."""
     if _np is not None and isinstance(rgba, _np.ndarray):
         return rgba.reshape(-1).tolist()
@@ -112,7 +116,9 @@ def _to_flat_list(rgba) -> list[int]:
     return list(rgba)
 
 
-def _to_rgba(image, *, color_order: str, resize: bool, target_size: int):
+def _to_rgba(
+    image: str | Path | bytes | Image.Image | _ArrayProtocol, *, color_order: str, resize: bool, target_size: int
+) -> tuple[int, int, bytes | _np.typing.NDArray[_np.uint8]]:
     """Normalize any supported input to ``(w, h, rgba_buf)``.
 
     ``rgba_buf`` is either:
@@ -146,7 +152,7 @@ def _to_rgba(image, *, color_order: str, resize: bool, target_size: int):
     )
 
 
-def _pil_to_rgba(pil, *, resize: bool, target_size: int) -> tuple[int, int, bytes]:
+def _pil_to_rgba(pil: Image.Image, *, resize: bool, target_size: int) -> tuple[int, int, bytes]:
     if ImageOps is None:
         raise ImportError(_PIL_REQUIRED)
     pil = ImageOps.exif_transpose(pil)
@@ -158,7 +164,9 @@ def _pil_to_rgba(pil, *, resize: bool, target_size: int) -> tuple[int, int, byte
     return pil.width, pil.height, pil.tobytes()
 
 
-def _ndarray_to_rgba(arr, *, color_order: str, resize: bool, target_size: int):
+def _ndarray_to_rgba(
+    arr: _np.typing.NDArray[Any], *, color_order: str, resize: bool, target_size: int
+) -> tuple[int, int, _np.typing.NDArray[_np.uint8]]:
     assert _np is not None  # guarded by caller
     np = _np
     if arr.ndim == 2:

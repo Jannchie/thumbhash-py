@@ -17,7 +17,7 @@ def _encode(w: int, h: int, rgba: List[int]) -> List[int]:
     Exposed for benchmarking large inputs against accelerated backends; the
     bit-packed result is only spec-valid when ``w, h <= 100``.
     """
-    avg_r, avg_g, avg_b, avg_a = 0, 0, 0, 0
+    avg_r, avg_g, avg_b, avg_a = 0.0, 0.0, 0.0, 0.0
 
     for i in range(w * h):
         j = i * 4
@@ -50,10 +50,10 @@ def _encode(w: int, h: int, rgba: List[int]) -> List[int]:
         q.append(r - g)
         a.append(alpha)
 
-    def encode_channel(channel, nx, ny):
-        dc = 0
+    def encode_channel(channel: list[float], nx: int, ny: int) -> tuple[float, list[float], float]:
+        dc = 0.0
         ac = []
-        scale = 0
+        scale = 0.0
         fx = [0.0] * w
 
         for cy in range(ny):

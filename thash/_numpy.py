@@ -1,5 +1,7 @@
 """NumPy-accelerated ThumbHash encoder. Requires numpy."""
 
+from __future__ import annotations
+
 from functools import cache
 from typing import List, Sequence
 
@@ -34,7 +36,7 @@ def _triangular_mask(nx: int, ny: int) -> np.ndarray:
     return cx_grid * ny < nx * (ny - cy_grid)
 
 
-def _encode_channel(channel_2d: np.ndarray, nx: int, ny: int, w: int, h: int):
+def _encode_channel(channel_2d: np.ndarray, nx: int, ny: int, w: int, h: int) -> tuple[float, list[float], float]:
     """DCT-II projection onto an (ny, nx) basis, returning (dc, ac_list, scale)."""
     Cx = _cosine_basis(w, nx, _DCT_DTYPE_CHAR)
     Cy = _cosine_basis(h, ny, _DCT_DTYPE_CHAR)
@@ -51,7 +53,9 @@ def _encode_channel(channel_2d: np.ndarray, nx: int, ny: int, w: int, h: int):
     return dc, ac.tolist(), scale
 
 
-def _encode_pq(p_ch: np.ndarray, q_ch: np.ndarray, w: int, h: int):
+def _encode_pq(
+    p_ch: np.ndarray, q_ch: np.ndarray, w: int, h: int
+) -> tuple[tuple[float, list[float], float], tuple[float, list[float], float]]:
     """Combined 3x3 DCT for P and Q channels (they share Cx/Cy)."""
     Cx = _cosine_basis(w, 3, _DCT_DTYPE_CHAR)
     Cy = _cosine_basis(h, 3, _DCT_DTYPE_CHAR)
@@ -78,7 +82,7 @@ def rgba_to_thumb_hash(w: int, h: int, rgba: Sequence[int]) -> List[int]:
     return _encode(w, h, rgba)
 
 
-def _encode(w: int, h: int, rgba: Sequence[int]) -> List[int]:
+def _encode(w: int, h: int, rgba: Sequence[int] | np.typing.NDArray[np.uint8]) -> List[int]:
     """NumPy encoder body without the 100x100 spec guard, for benchmarking."""
     arr = np.asarray(rgba, dtype=_DCT_DTYPE).reshape(h, w, 4)
     r = arr[..., 0]
