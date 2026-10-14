@@ -1,3 +1,11 @@
+## v1.2.1
+
+[v1.2.0...v1.2.1](https://github.com/Jannchie/thumbhash-py/compare/v1.2.0...v1.2.1)
+
+### :wrench: Chores
+
+- **typing**: pass mypy --strict and ship py.typed - By [nicoco](https://github.com/truenicoco) in [#1](https://github.com/Jannchie/thumbhash-py/pull/1)
+
 ## v1.2.0
 
 [v1.1.0...v1.2.0](https://github.com/Jannchie/thumbhash-py/compare/v1.1.0...v1.2.0)
